@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>لعبة XO الحديثة</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+    :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --primary: #6366f1;
+        --secondary: #22c55e;
+        --danger: #f97316;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+    }
+
+    * {
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, sans-serif;
+    }
+
+    body {
+        margin: 0;
+        background: linear-gradient(135deg, #020617, #0f172a);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 80px;
+    }
+
+    .screen {
+        background: var(--card);
+        padding: 25px;
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        width: 340px;
+        max-width: 95%;
+        text-align: center;
+        animation: fade 0.4s ease;
+    }
+
+    h1 {
+        margin-top: 0;
+        color: var(--secondary);
+    }
+
+    .hidden {
+        display: none;
+    }
+
+    label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        color: var(--muted);
+        font-size: 14px;
+        text-align: right;
+    }
+
+    input, select {
+        width: 100%;
+        padding: 10px;
+        border-radius: 12px;
+        border: none;
+        outline: none;
+        background: #020617;
+        color: var(--text);
+        font-size: 15px;
+    }
+
+    button {
+        margin-top: 18px;
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 14px;
+        background: linear-gradient(135deg, var(--primary), #818cf8);
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(99,102,241,0.5);
+    }
+
+    .status {
+        margin: 10px 0;
+        font-size: 17px;
+        color: var(--muted);
+    }
+
+    .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin: 15px 0;
+    }
+
+    .cell {
+        background: #020617;
+        height: 90px;
+        border-radius: 16px;
+        font-size: 40px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.15s;
+    }
+
+    .cell:hover {
+        transform: scale(1.05);
+    }
+
+    .x {
+        color: #38bdf8;
+    }
+
+    .o {
+        color: var(--danger);
+    }
+
+    footer {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+        background: #020617;
+        color: var(--muted);
+        font-size: 13px;
+        text-align: center;
+        padding: 10px 5px;
+    }
+
+    @keyframes fade {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+</style>
+</head>
+
+<body>
+
+<!-- شاشة البداية -->
+<div class="screen" id="startScreen">
+    <h1>🎮 لعبة XO</h1>
+
+    <label>وضع اللعب</label>
+    <select id="mode">
+        <option value="1">لاعب واحد (ضد الكمبيوتر)</option>
+        <option value="2">لاعبان</option>
+    </select>
+
+    <label>اسم اللاعب الأول</label>
+    <input type="text" id="player1" placeholder="أدخل اسم اللاعب الأول">
+
+    <div id="player2Box" class="hidden">
+        <label>اسم اللاعب الثاني</label>
+        <input type="text" id="player2" placeholder="أدخل اسم اللاعب الثاني">
+    </div>
+
+    <button onclick="startGame()">ابدأ اللعب 🚀</button>
+</div>
+
+<!-- شاشة اللعبة -->
+<div class="screen hidden" id="gameScreen">
+    <h1>❌⭕ XO</h1>
+    <div class="status" id="status"></div>
+
+    <div class="board" id="board">
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+    </div>
+
+    <button onclick="resetGame()">إعادة اللعب 🔄</button>
+</div>
+
+<footer>
+    Student Name: <strong>RAYAN ABDULAZIZ ASAAD DAMANHURI</strong>
+    (ريان عبدالعزيز بن اسعد دمنهورى) |
+    Student ID: <strong>44610321</strong> |
+    Supervised by: <strong>Mohammed Ahmed Jabali</strong>
+</footer>
+
+<script>
+    const modeSelect = document.getElementById("mode");
+    const player2Box = document.getElementById("player2Box");
+    const startScreen = document.getElementById("startScreen");
+    const gameScreen = document.getElementById("gameScreen");
+    const statusText = document.getElementById("status");
+    const cells = document.querySelectorAll(".cell");
+
+    let mode = 1;
+    let players = [];
+    let currentPlayer = 0;
+    let gameActive = true;
+
+    const winCombos = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+
+    modeSelect.addEventListener("change", () => {
+        player2Box.classList.toggle("hidden", modeSelect.value === "1");
+    });
+
+    function startGame() {
+        mode = modeSelect.value;
+        const p1 = document.getElementById("player1").value || "اللاعب 1";
+        const p2 = mode === "2"
+            ? (document.getElementById("player2").value || "اللاعب 2")
+            : "الكمبيوتر";
+
+        players = [
+            { name: p1, symbol: "X" },
+            { name: p2, symbol: "O" }
+        ];
+
+        startScreen.classList.add("hidden");
+        gameScreen.classList.remove("hidden");
+
+        updateStatus();
+    }
+
+    cells.forEach((cell, index) => {
+        cell.addEventListener("click", () => playMove(cell, index));
+    });
+
+    function playMove(cell, index) {
+        if (!gameActive || cell.textContent) return;
+
+        cell.textContent = players[currentPlayer].symbol;
+        cell.classList.add(players[currentPlayer].symbol.toLowerCase());
+
+        if (checkWin()) {
+            statusText.textContent = `🎉 ${players[currentPlayer].name} فاز!`;
+            gameActive = false;
+            return;
+        }
+
+        if (isDraw()) {
+            statusText.textContent = "🤝 تعادل!";
+            gameActive = false;
+            return;
+        }
+
+        currentPlayer = 1 - currentPlayer;
+        updateStatus();
+
+        if (mode === "1" && currentPlayer === 1) {
+            setTimeout(computerMove, 600);
+        }
+    }
+
+    function computerMove() {
+        const emptyCells = [...cells].filter(c => !c.textContent);
+        if (emptyCells.length === 0) return;
+        const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        randomCell.click();
+    }
+
+    function checkWin() {
+        return winCombos.some(combo =>
+            combo.every(i => cells[i].textContent === players[currentPlayer].symbol)
+        );
+    }
+
+    function isDraw() {
+        return [...cells].every(cell => cell.textContent);
+    }
+
+    function updateStatus() {
+        statusText.textContent = `الدور الحالي: ${players[currentPlayer].name} (${players[currentPlayer].symbol})`;
+    }
+
+    function resetGame() {
+        cells.forEach(cell => {
+            cell.textContent = "";
+            cell.className = "cell";
+        });
+        currentPlayer = 0;
+        gameActive = true;
+        updateStatus();
+    }
+</script>
+
+</body>
+</html>
+
